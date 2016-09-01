@@ -2,15 +2,6 @@ defmodule TgClient do
   use Application
   alias TgClient.Utils
 
-  defmodule Settings do
-    defstruct phone: nil, port: nil
-  end
-
-  @type settings :: %Settings{
-    phone: non_neg_integer | nil,
-    port: non_neg_integer | nil
-  }
-
   ### Application callbacks
 
   def start(_type, _args) do

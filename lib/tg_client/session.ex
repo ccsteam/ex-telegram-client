@@ -2,9 +2,7 @@ defmodule TgClient.Session do
   use GenServer
 
   alias Porcelain.Process, as: Proc
-  alias TgClient.{Utils, Connection}
-
-  require Logger
+  alias TgClient.{Utils, Connection, PortManager}
 
   defmodule State do
     defstruct proc: nil,
@@ -16,8 +14,8 @@ defmodule TgClient.Session do
 
   ### API
 
-  def start_link(%{phone: phone} = settings) do
-    GenServer.start_link(__MODULE__, settings, name: Utils.session_name(phone))
+  def start_link(phone) do
+    GenServer.start_link(__MODULE__, phone, name: Utils.session_name(phone))
   end
 
   def current_status(phone) do
@@ -38,13 +36,17 @@ defmodule TgClient.Session do
 
   ### GenServer Callbacks
 
-  def init(settings) do
-    proc = Porcelain.spawn_shell(Utils.command(settings.phone, settings.port),
-                                in: :receive, out: {:send, self()})
-    state = %State{port: settings.port, phone: settings.phone, proc: proc}
-    send self(), {:connect, settings.port}
-
-    {:ok, state}
+  def init(phone) do
+    case PortManager.get_free_port do
+      {:ok, port} ->
+        proc = Porcelain.spawn_shell(Utils.command(phone, port),
+                                    in: :receive, out: {:send, self()})
+        state = %State{port: port, phone: phone, proc: proc}
+        send self(), {:connect, port}
+        {:ok, state}
+      {:error, error} ->
+        {:stop, error}
+    end
   end
 
   def handle_call(:current_status, _from, state) do
@@ -74,15 +76,15 @@ defmodule TgClient.Session do
   end
 
   def handle_info({:connect, port}, state) do
-    {:ok, pid} = Connection.start_link(port)
-    Process.monitor(pid)
+    {:ok, _pid} = Connection.start_link(port)
+    {:ok, {:bound, _port}} = PortManager.bind_port(port)
 
     {:noreply, %{state | status: :connected}}
   end
 
   def handle_info({_pid, :data, :out, data}, state) do
     #Logger.debug "Data received: #{inspect data}"
-    {:ok, lines, rest} = handle_data(data)
+    {:ok, _lines, rest} = handle_data(data)
 
     #Logger.debug "Data handled: #{inspect lines}"
     #Logger.debug "Data rest: #{inspect rest}"
@@ -99,8 +101,7 @@ defmodule TgClient.Session do
         {:noreply, state}
     end
   end
-  def handle_info(msg, state) do
-    Logger.debug inspect msg
+  def handle_info(_msg, state) do
     {:noreply, state}
   end
 
