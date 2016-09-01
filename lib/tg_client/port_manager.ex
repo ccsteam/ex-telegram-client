@@ -26,10 +26,10 @@ defmodule TgClient.PortManager do
     GenServer.cast(__MODULE__, {:release, port})
   end
 
-
   ### GenServer Callbacks
 
   def init(ports) do
+    Task.async(&release_all_system_ports/0)
     {:ok, ports}
   end
 
@@ -53,11 +53,32 @@ defmodule TgClient.PortManager do
     {:noreply, MapSet.delete(busy_ports, port)}
   end
 
+  def handle_info(_msg, state) do
+    {:noreply, state}
+  end
 
   ### Internal functions
 
+  defp release_all_system_ports do
+    port_range
+    |> Stream.filter(&system_port_bound?/1)
+    |> Enum.each(&kill_system_port/1)
+  end
+
   defp port_range do
     Application.get_env(:tg_client, :port_range)
+  end
+
+  defp system_port_bound?(port) do
+    !check_system_port(port) == []
+  end
+  defp check_system_port(port) do
+    "lsof -i:#{port}" |> String.to_charlist |> :os.cmd
+  end
+  defp kill_system_port(port) do
+    "kill -9 $(lsof -t -i:#{port})"
+    |> String.to_charlist
+    |> :os.cmd
   end
 
 end
