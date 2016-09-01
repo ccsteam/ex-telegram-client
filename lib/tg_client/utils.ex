@@ -1,4 +1,7 @@
 defmodule TgClient.Utils do
+  alias TgClient.PortManager
+  import Supervisor.Spec, only: [worker: 3]
+
   @type gproc_name :: {atom, atom, {atom, atom, {atom, String.t}}}
 
   def command(phone, port) do
@@ -56,5 +59,11 @@ defmodule TgClient.Utils do
   @spec via_tuple(String.t, atom) :: gproc_name
   defp via_tuple(worker_name, worker_type) do
     {:via, :gproc, {:n, :l, {worker_type, worker_name}}}
+  end
+
+  def supervisor_spec do
+    [
+      worker(PortManager, [], [])
+    ]
   end
 end

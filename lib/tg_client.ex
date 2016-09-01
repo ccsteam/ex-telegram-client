@@ -1,5 +1,6 @@
 defmodule TgClient do
   use Application
+  alias TgClient.Utils
 
   defmodule Settings do
     defstruct phone: nil, port: nil
@@ -13,10 +14,10 @@ defmodule TgClient do
   ### Application callbacks
 
   def start(_type, _args) do
-    #children = Utils.event_handlers_spec
+    children = Utils.supervisor_spec
 
-    # opts = [strategy: :one_for_one, name: TgClient.Supervisor]
-    # Supervisor.start_link(children, opts)
+    opts = [strategy: :one_for_one, name: TgClient.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 
 end

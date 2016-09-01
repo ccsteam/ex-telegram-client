@@ -14,7 +14,10 @@ defmodule TgClient.Mixfile do
   end
 
   def application do
-    [applications: [:porcelain, :gproc]]
+    [
+      mod: {TgClient, []},
+      applications: [:porcelain, :gproc]
+    ]
   end
 
   defp deps do
