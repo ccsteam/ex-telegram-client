@@ -27,7 +27,7 @@ end
 * Start session
 
 ```elixir
-{:ok, _pid} = TgClient.Session.start_link(%{phone: 79251008050, port: 2031})
+{:ok, _pid} = TgClient.Session.start_link(79251008050)
 ```
 
 * Check session status
