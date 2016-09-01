@@ -76,7 +76,7 @@ defmodule TgClient.PortManager do
     "lsof -i:#{port}" |> String.to_charlist |> :os.cmd
   end
   defp kill_system_port(port) do
-    "kill -9 $(lsof -t -i:#{port})"
+    "kill $(lsof -t -i:#{port})"
     |> String.to_charlist
     |> :os.cmd
   end

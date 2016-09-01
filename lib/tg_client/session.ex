@@ -4,8 +4,6 @@ defmodule TgClient.Session do
   alias Porcelain.Process, as: Proc
   alias TgClient.{Utils, Connection, PortManager}
 
-  require Logger
-
   defmodule State do
     defstruct proc: nil,
               status: :init,
@@ -87,8 +85,7 @@ defmodule TgClient.Session do
   def handle_info({_pid, :data, :out, data}, state) do
     {:ok, lines, rest} = handle_data(data)
     data = charlist_to_string(lines)
-    #Logger.debug "Data handled: #{inspect data}"
-
+    
     try do
       send_event(Poison.Parser.parse!(data))
     rescue
