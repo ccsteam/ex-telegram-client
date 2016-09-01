@@ -4,6 +4,8 @@ defmodule TgClient.Session do
   alias Porcelain.Process, as: Proc
   alias TgClient.{Utils, Connection, PortManager}
 
+  require Logger
+
   defmodule State do
     defstruct proc: nil,
               status: :init,
@@ -83,11 +85,9 @@ defmodule TgClient.Session do
   end
 
   def handle_info({_pid, :data, :out, data}, state) do
-    #Logger.debug "Data received: #{inspect data}"
-    {:ok, _lines, rest} = handle_data(data)
-
-    #Logger.debug "Data handled: #{inspect lines}"
-    #Logger.debug "Data rest: #{inspect rest}"
+    {:ok, lines, rest} = handle_data(data)
+    lines = charlist_to_string(lines)
+    Logger.debug "Data handled: #{inspect lines}"
 
     case rest do
       'phone number: ' ->
@@ -105,23 +105,27 @@ defmodule TgClient.Session do
     {:noreply, state}
   end
 
-
-  def handle_data(data) do
+  defp handle_data(data) do
     handle_data(data, [], [])
   end
 
-  def handle_data("\r\e[K" <> rest, line, acc) do
+  defp handle_data("\r\e[K" <> rest, line, acc) do
     handle_data(rest, line, acc)
   end
-  def handle_data("\n" <> rest, line, acc) do
+  defp handle_data("\n" <> rest, line, acc) do
     handle_data(rest, [], [Enum.reverse(line)|acc])
   end
-
-  def handle_data(<<char>> <> rest, line, acc) do
+  defp handle_data(<<char>> <> rest, line, acc) do
     handle_data(rest, [char|line], acc)
   end
-
-  def handle_data("", rest, acc) do
+  defp handle_data("", rest, acc) do
     {:ok, Enum.reverse(acc), Enum.reverse(rest)}
+  end
+
+  defp charlist_to_string(data) when is_list(data) do
+    data |> List.flatten |> Enum.map(&(<<&1>>)) |> Enum.join("")
+  end
+  defp charlist_to_string(data) do
+    data
   end
 end
