@@ -86,9 +86,14 @@ defmodule TgClient.Session do
 
   def handle_info({_pid, :data, :out, data}, state) do
     {:ok, lines, rest} = handle_data(data)
-    lines = charlist_to_string(lines)
-    Logger.debug "Data handled: #{inspect lines}"
+    data = charlist_to_string(lines)
+    #Logger.debug "Data handled: #{inspect data}"
 
+    try do
+      send_event(Poison.Parser.parse!(data))
+    rescue
+      Poison.SyntaxError -> :skip
+    end
     case rest do
       'phone number: ' ->
         Proc.send_input(state.proc, "#{state.phone} \n")
@@ -120,6 +125,13 @@ defmodule TgClient.Session do
   end
   defp handle_data("", rest, acc) do
     {:ok, Enum.reverse(acc), Enum.reverse(rest)}
+  end
+
+  defp send_event(event) when is_map(event) do
+    GenEvent.notify(:event_handler, event)
+  end
+  defp send_event(_data) do
+    :ok
   end
 
   defp charlist_to_string(data) when is_list(data) do
