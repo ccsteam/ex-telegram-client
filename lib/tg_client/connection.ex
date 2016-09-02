@@ -4,7 +4,8 @@ defmodule TgClient.Connection do
   """
   use GenServer
 
-  alias TgClient.{Utils, CommandHandler}
+  alias TgClient.Utils
+  alias TgClient.Api.CommandHandler
 
   @doc false
   defmodule State do

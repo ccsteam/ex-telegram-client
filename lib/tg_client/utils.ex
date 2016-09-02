@@ -2,7 +2,8 @@ defmodule TgClient.Utils do
   @moduledoc """
   Module with usefull functions.
   """
-  alias TgClient.{PortManager, EventManagerWatcher}
+  alias TgClient.PortManager
+  alias TgClient.Event.ManagerWatcher
 
   import Supervisor.Spec, only: [worker: 3]
 
@@ -68,7 +69,7 @@ defmodule TgClient.Utils do
     {_handler, opts} = event_handler()
     size = Keyword.get(opts, :size, default_pool_size())
     max_overflow = Keyword.get(opts, :max_overflow, default_pool_max_overflow())
-    [poolboy_spec(pool_name(), EventManagerWatcher, size, max_overflow)]
+    [poolboy_spec(pool_name(), ManagerWatcher, size, max_overflow)]
   end
 
   defp poolboy_spec(name, handler, size, max_overflow) do

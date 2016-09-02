@@ -1,4 +1,4 @@
-defmodule TgClient.EventManagerWatcher do
+defmodule TgClient.Event.ManagerWatcher do
   @moduledoc """
   Worker for creation/monitoring GenEvent manager and registration event handler.
   """

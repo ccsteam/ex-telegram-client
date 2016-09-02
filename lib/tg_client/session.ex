@@ -5,7 +5,8 @@ defmodule TgClient.Session do
   use GenServer
 
   alias Porcelain.Process, as: Proc
-  alias TgClient.{Utils, Connection, PortManager, EventManagerWatcher}
+  alias TgClient.{Utils, Connection, PortManager}
+  alias TgClient.Event.ManagerWatcher
 
   @doc false
   defmodule State do
@@ -158,7 +159,7 @@ defmodule TgClient.Session do
   defp send_event(event) when is_map(event) do
     spawn fn ->
       :poolboy.transaction(Utils.pool_name(), fn(pid) ->
-        EventManagerWatcher.push_event(pid, event)
+        ManagerWatcher.push_event(pid, event)
       end)
     end
   end

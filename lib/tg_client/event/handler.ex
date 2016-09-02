@@ -1,4 +1,4 @@
-defmodule TgClient.EventHandler do
+defmodule TgClient.Event.Handler do
   use GenEvent
 
   require Logger

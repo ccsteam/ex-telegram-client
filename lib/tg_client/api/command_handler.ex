@@ -1,4 +1,4 @@
-defmodule TgClient.CommandHandler do
+defmodule TgClient.Api.CommandHandler do
   @moduledoc """
   Module for command accept, execute and handle its result.
   """
