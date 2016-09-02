@@ -1,9 +1,13 @@
 defmodule TgClient.Session do
+  @moduledoc """
+  Worker for dealing with telegram-cli session.
+  """
   use GenServer
 
   alias Porcelain.Process, as: Proc
   alias TgClient.{Utils, Connection, PortManager, EventManagerWatcher}
 
+  @doc false
   defmodule State do
     defstruct proc: nil,
               status: :init,
@@ -11,25 +15,52 @@ defmodule TgClient.Session do
               port: nil,
               socket: nil
   end
+  @type state :: %State{
+    proc: %Proc{} | nil,
+    status: :init | :waiting_for_confirmation | :waiting_for_password | :connected,
+    phone: non_neg_integer | nil,
+    port: non_neg_integer | nil,
+    socket: port | nil
+  }
 
   ### API
 
+  @doc """
+  Starts a session with phone
+  """
+  @spec start_link(non_neg_integer) :: GenServer.on_start
   def start_link(phone) do
     GenServer.start_link(__MODULE__, phone, name: Utils.session_name(phone))
   end
 
+  @doc """
+  Return current session status
+  """
+  @spec current_status(non_neg_integer) :: {:ok, atom}
   def current_status(phone) do
     GenServer.call(Utils.session_name(phone), :current_status)
   end
 
+  @doc """
+  Send request to TCP connection
+  """
+  @spec send_command(non_neg_integer, String.t, List.t) :: {:ok, String.t} | {:error, atom}
   def send_command(phone, command, params) do
     GenServer.call(Utils.session_name(phone), {:send_command, command, params})
   end
 
+  @doc """
+  Put confirmation code to stdio
+  """
+  @spec confirm(non_neg_integer, non_neg_integer) :: atom
   def confirm(phone, code) do
     GenServer.cast(Utils.session_name(phone), {:confirm, code})
   end
 
+  @doc """
+  Put password to stdio
+  """
+  @spec put_password(non_neg_integer, non_neg_integer) :: atom
   def put_password(phone, password) do
     GenServer.cast(Utils.session_name(phone), {:put_password, password})
   end
@@ -50,7 +81,7 @@ defmodule TgClient.Session do
   end
 
   def handle_call(:current_status, _from, state) do
-    {:reply, state.status, state}
+    {:reply, {:ok, state.status}, state}
   end
   def handle_call({:send_command, command, params}, _from, %{status: status} = state)
       when status in [:connected] do
@@ -124,14 +155,14 @@ defmodule TgClient.Session do
     {:ok, Enum.reverse(acc), Enum.reverse(rest)}
   end
 
-  def send_event(event) when is_map(event) do
+  defp send_event(event) when is_map(event) do
     spawn fn ->
       :poolboy.transaction(Utils.pool_name(), fn(pid) ->
         EventManagerWatcher.push_event(pid, event)
       end)
     end
   end
-  def send_event(_data) do
+  defp send_event(_data) do
     :ok
   end
 

@@ -1,11 +1,15 @@
 defmodule TgClient.EventManagerWatcher do
+  @moduledoc """
+  Worker for creation/monitoring GenEvent manager and registration event handler.
+  """
   use GenServer
+
   alias TgClient.Utils
 
   @doc """
-    starts the GenServer, this should be done by a Supervisor to ensure
-    restarts if it itself goes down
+    Starts EventManagerWatcher
   """
+  @spec start_link(any) :: GenServer.on_start
   def start_link(_args) do
     GenServer.start_link(__MODULE__, [])
   end
@@ -13,6 +17,7 @@ defmodule TgClient.EventManagerWatcher do
   @doc """
     Push event to GenEvent handler
   """
+  @spec push_event(pid, map) :: :ok | {:error, term}
   def push_event(pid, event) do
     GenServer.call(pid, {:push_event, event})
   end
@@ -25,7 +30,7 @@ defmodule TgClient.EventManagerWatcher do
   end
 
   @doc """
-    inits the GenServer by starting a new handler
+    Send sync notification to handler
   """
   def handle_call({:push_event, event}, _from, manager) do
     GenEvent.sync_notify(manager, event)
@@ -40,17 +45,11 @@ defmodule TgClient.EventManagerWatcher do
     {:noreply, manager}
   end
 
-  @doc """
-    Starts a GenEvent manager
-  """
   defp start_manager do
     {:ok, manager} = GenEvent.start_link([])
     add_handler(manager)
   end
 
-  @doc """
-    Add mon handler to GenEvent manager
-  """
   defp add_handler(manager) when is_pid(manager) do
     case GenEvent.add_mon_handler(manager, Utils.event_handler_mod, []) do
       :ok ->
