@@ -1,19 +1,35 @@
 defmodule TgClient.Connection do
+  @moduledoc """
+  Connection with Telegram-CLI TCP server.
+  """
   use GenServer
-  alias TgClient.{Utils, CommandHandler}
 
+  alias TgClient.Utils
+  alias TgClient.Api.CommandHandler
+
+  @doc false
   defmodule State do
     defstruct host: 'localhost',
               port: 1234,
               failure_count: 0,
               socket: nil
   end
+  @type state :: %State{
+    host: charlist,
+    port: non_neg_integer,
+    failure_count: non_neg_integer,
+    socket: port | nil
+  }
 
   @retry_interval 1000
   @max_retries 10
 
   ### API
 
+  @doc """
+  Starts connection with port
+  """
+  @spec start_link(non_neg_integer) :: GenServer.on_start
   def start_link(port) do
     GenServer.start_link(__MODULE__, port, name: Utils.connection_name(port))
   end

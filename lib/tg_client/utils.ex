@@ -1,9 +1,18 @@
 defmodule TgClient.Utils do
-  alias TgClient.{PortManager, EventManagerWatcher}
+  @moduledoc """
+  Module with usefull functions.
+  """
+  alias TgClient.PortManager
+  alias TgClient.Event.ManagerWatcher
+
   import Supervisor.Spec, only: [worker: 3]
 
   @type gproc_name :: {atom, atom, {atom, atom, {atom, String.t}}}
 
+  @doc """
+  Return command for start telegram-cli
+  """
+  @spec command(non_neg_integer, non_neg_integer) :: String.t
   def command(phone, port) do
     init_session_env(phone)
     "export TELEGRAM_HOME=#{session_env_path(phone)} && #{daemon} #{cli_arguments} -P #{port}"
@@ -42,21 +51,25 @@ defmodule TgClient.Utils do
     {:via, :gproc, {:n, :l, {worker_type, worker_name}}}
   end
 
-  def event_handler_pool_info do
-    Process.whereis(pool_name()) |> Process.info
-  end
-
+  @doc """
+  Return Supervisor.Spec for general workers
+  """
+  @spec supervisor_spec :: [Supervisor.spec]
   def supervisor_spec do
     [
       worker(PortManager, [], [])
     ]
   end
 
+  @doc """
+  Return Supervisor.Spec for event workers
+  """
+  @spec event_manager_pool_spec :: [Supervisor.spec]
   def event_manager_pool_spec do
     {_handler, opts} = event_handler()
     size = Keyword.get(opts, :size, default_pool_size())
     max_overflow = Keyword.get(opts, :max_overflow, default_pool_max_overflow())
-    [poolboy_spec(pool_name(), EventManagerWatcher, size, max_overflow)]
+    [poolboy_spec(pool_name(), ManagerWatcher, size, max_overflow)]
   end
 
   defp poolboy_spec(name, handler, size, max_overflow) do
@@ -70,13 +83,29 @@ defmodule TgClient.Utils do
     :poolboy.child_spec(name, poolboy_config, [])
   end
 
+  @doc """
+  Return event handler module
+  """
+  @spec event_handler_mod :: module
   def event_handler_mod do
     {mod, _opts} = event_handler
     mod
   end
 
+  @doc """
+  Return pool name
+  """
+  @spec pool_name :: atom
   def pool_name do
     Application.get_env(:tg_client, :pool_name)
+  end
+
+  @doc """
+  Return ports range
+  """
+  @spec port_range :: Range.t
+  def port_range do
+    Application.get_env(:tg_client, :port_range)
   end
 
   defp event_handler do

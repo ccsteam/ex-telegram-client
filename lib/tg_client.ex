@@ -1,5 +1,6 @@
 defmodule TgClient do
   use Application
+  
   alias TgClient.Utils
 
   ### Application callbacks

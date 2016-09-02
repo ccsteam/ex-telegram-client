@@ -1,7 +1,14 @@
-defmodule TgClient.CommandHandler do
+defmodule TgClient.Api.CommandHandler do
+  @moduledoc """
+  Module for command accept, execute and handle its result.
+  """
   @available_commands ["dialog_list", "contact_list", "msg", "history",
                        "create_secret_chat"]
 
+  @doc """
+  Extract command, params and socket from options and execute command
+  """
+  @spec handle_command(Keyword.t) :: {:ok, String.t} | {:error, atom}
   def handle_command(opts) do
     command = Keyword.get(opts, :command)
     params = Keyword.get(opts, :params, [])

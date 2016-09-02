@@ -49,7 +49,7 @@ config :tg_client,
   default_pool_size: 5,
   default_pool_max_overflow: 10,
   pool_name: :event_handler,
-  event_handler: {TgClient.EventHandler, size: 10, max_overflow: 10}
+  event_handler: {TgClient.Event.Handler, size: 10, max_overflow: 10}
 ```
 
 ## Authorization
@@ -254,5 +254,5 @@ config :tg_client,
   default_pool_size: 5,
   default_pool_max_overflow: 10,
   pool_name: :event_handler,
-  event_handler: {TgClient.EventHandler, size: 10, max_overflow: 10}
+  event_handler: {TgClient.Event.Handler, size: 10, max_overflow: 10}
 ```
