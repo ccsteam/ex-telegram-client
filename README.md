@@ -46,7 +46,10 @@ config :tg_client,
   key: "/usr/local/share/telegram-cli/tg-server.pub",
   session_env_path: "/tmp/telegram-cli/sessions",
   port_range: 2000..4000,
-  event_handler_mod: TgClient.EventHandler
+  default_pool_size: 5,
+  default_pool_max_overflow: 10,
+  pool_name: :event_handler,
+  event_handler: {TgClient.EventHandler, size: 10, max_overflow: 10}
 ```
 
 ## Authorization
@@ -248,5 +251,8 @@ config :tg_client,
   key: "/usr/local/share/telegram-cli/tg-server.pub",
   session_env_path: "/tmp/telegram-cli/sessions",
   port_range: 2000..4000,
-  event_handler_mod: TgClient.EventHandler
+  default_pool_size: 5,
+  default_pool_max_overflow: 10,
+  pool_name: :event_handler,
+  event_handler: {TgClient.EventHandler, size: 10, max_overflow: 10}
 ```
