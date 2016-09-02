@@ -1,5 +1,5 @@
 defmodule TgClient.Utils do
-  alias TgClient.PortManager
+  alias TgClient.{PortManager, EventHandlerWatcher}
   import Supervisor.Spec, only: [worker: 3]
 
   @type gproc_name :: {atom, atom, {atom, atom, {atom, String.t}}}
@@ -38,6 +38,10 @@ defmodule TgClient.Utils do
     Application.get_env(:tg_client, :key)
   end
 
+  def event_handler_mod do
+    Application.get_env(:tg_client, :event_handler_mod)
+  end
+
   @doc """
   Creates unique name for session process based on user phone
   """
@@ -63,7 +67,8 @@ defmodule TgClient.Utils do
 
   def supervisor_spec do
     [
-      worker(PortManager, [], [])
+      worker(PortManager, [], []),
+      worker(EventHandlerWatcher, [], [])
     ]
   end
 end

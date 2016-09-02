@@ -22,6 +22,33 @@ def application do
 end
 ```
 
+## Usage
+
+* Write your own EventHandler module.
+
+```elixir
+defmodule EventHandler do
+  use GenEvent
+  require Logger
+
+  def handle_event(event, state) do
+    Logger.debug "Unknown Event: " <> inspect(event)
+    {:ok, state}
+  end
+end
+```
+
+* Set config.
+
+```elixir
+config :tg_client,
+  daemon: "/usr/local/telegram-cli",
+  key: "/usr/local/share/telegram-cli/tg-server.pub",
+  session_env_path: "/tmp/telegram-cli/sessions",
+  port_range: 2000..4000,
+  event_handler_mod: TgClient.EventHandler
+```
+
 ## Authorization
 
 * Start session
@@ -219,5 +246,7 @@ when response is:
 config :tg_client,
   daemon: "/usr/local/telegram-cli",
   key: "/usr/local/share/telegram-cli/tg-server.pub",
-  session_env_path: "/tmp/telegram-cli/sessions"
+  session_env_path: "/tmp/telegram-cli/sessions",
+  port_range: 2000..4000,
+  event_handler_mod: TgClient.EventHandler
 ```

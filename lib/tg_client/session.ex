@@ -83,12 +83,14 @@ defmodule TgClient.Session do
   end
 
   def handle_info({_pid, :data, :out, data}, state) do
-    #Logger.debug "Data received: #{inspect data}"
-    {:ok, _lines, rest} = handle_data(data)
-
-    #Logger.debug "Data handled: #{inspect lines}"
-    #Logger.debug "Data rest: #{inspect rest}"
-
+    {:ok, lines, rest} = handle_data(data)
+    data = charlist_to_string(lines)
+    
+    try do
+      send_event(Poison.Parser.parse!(data))
+    rescue
+      Poison.SyntaxError -> :skip
+    end
     case rest do
       'phone number: ' ->
         Proc.send_input(state.proc, "#{state.phone} \n")
@@ -105,23 +107,34 @@ defmodule TgClient.Session do
     {:noreply, state}
   end
 
-
-  def handle_data(data) do
+  defp handle_data(data) do
     handle_data(data, [], [])
   end
 
-  def handle_data("\r\e[K" <> rest, line, acc) do
+  defp handle_data("\r\e[K" <> rest, line, acc) do
     handle_data(rest, line, acc)
   end
-  def handle_data("\n" <> rest, line, acc) do
+  defp handle_data("\n" <> rest, line, acc) do
     handle_data(rest, [], [Enum.reverse(line)|acc])
   end
-
-  def handle_data(<<char>> <> rest, line, acc) do
+  defp handle_data(<<char>> <> rest, line, acc) do
     handle_data(rest, [char|line], acc)
   end
-
-  def handle_data("", rest, acc) do
+  defp handle_data("", rest, acc) do
     {:ok, Enum.reverse(acc), Enum.reverse(rest)}
+  end
+
+  defp send_event(event) when is_map(event) do
+    GenEvent.notify(:event_handler, event)
+  end
+  defp send_event(_data) do
+    :ok
+  end
+
+  defp charlist_to_string(data) when is_list(data) do
+    data |> List.flatten |> Enum.map(&(<<&1>>)) |> Enum.join("")
+  end
+  defp charlist_to_string(data) do
+    data
   end
 end
