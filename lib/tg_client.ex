@@ -5,10 +5,10 @@ defmodule TgClient do
   ### Application callbacks
 
   def start(_type, _args) do
-    children = Utils.supervisor_spec
+    children = Utils.supervisor_spec ++ Utils.event_manager_pool_spec
 
     opts = [strategy: :one_for_one, name: TgClient.Supervisor]
-    Supervisor.start_link(children, opts)
+    {:ok, _pid} = Supervisor.start_link(children, opts)
   end
 
 end

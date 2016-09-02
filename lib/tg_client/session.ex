@@ -2,7 +2,7 @@ defmodule TgClient.Session do
   use GenServer
 
   alias Porcelain.Process, as: Proc
-  alias TgClient.{Utils, Connection, PortManager}
+  alias TgClient.{Utils, Connection, PortManager, EventManagerWatcher}
 
   defmodule State do
     defstruct proc: nil,
@@ -85,7 +85,7 @@ defmodule TgClient.Session do
   def handle_info({_pid, :data, :out, data}, state) do
     {:ok, lines, rest} = handle_data(data)
     data = charlist_to_string(lines)
-    
+
     try do
       send_event(Poison.Parser.parse!(data))
     rescue
@@ -124,10 +124,14 @@ defmodule TgClient.Session do
     {:ok, Enum.reverse(acc), Enum.reverse(rest)}
   end
 
-  defp send_event(event) when is_map(event) do
-    GenEvent.notify(:event_handler, event)
+  def send_event(event) when is_map(event) do
+    spawn fn ->
+      :poolboy.transaction(Utils.pool_name(), fn(pid) ->
+        EventManagerWatcher.push_event(pid, event)
+      end)
+    end
   end
-  defp send_event(_data) do
+  def send_event(_data) do
     :ok
   end
 
