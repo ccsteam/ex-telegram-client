@@ -1,5 +1,5 @@
 defmodule TgClient.Utils do
-  alias TgClient.{PortManager, EventHandlerWatcher}
+  alias TgClient.{PortManager, EventManagerWatcher}
   import Supervisor.Spec, only: [worker: 3]
 
   @type gproc_name :: {atom, atom, {atom, atom, {atom, String.t}}}
@@ -17,29 +17,6 @@ defmodule TgClient.Utils do
     unless File.exists?(session_env_path(phone)) do
       File.mkdir_p("#{session_env_path(phone)}/.telegram-cli")
     end
-  end
-
-  defp phone_hash(phone) do
-    :crypto.hash(:md5, Integer.to_string(phone)) |> Base.encode16
-  end
-
-  defp session_env_path(phone) do
-    "#{session_env_path}/#{phone_hash(phone)}"
-  end
-  defp session_env_path do
-    Application.get_env(:tg_client, :session_env_path)
-  end
-
-  defp daemon do
-    Application.get_env(:tg_client, :daemon)
-  end
-
-  defp server_key do
-    Application.get_env(:tg_client, :key)
-  end
-
-  def event_handler_mod do
-    Application.get_env(:tg_client, :event_handler_mod)
   end
 
   @doc """
@@ -65,10 +42,72 @@ defmodule TgClient.Utils do
     {:via, :gproc, {:n, :l, {worker_type, worker_name}}}
   end
 
+  def event_handler_pool_info do
+    Process.whereis(pool_name()) |> Process.info
+  end
+
   def supervisor_spec do
     [
-      worker(PortManager, [], []),
-      worker(EventHandlerWatcher, [], [])
+      worker(PortManager, [], [])
     ]
   end
+
+  def event_manager_pool_spec do
+    {_handler, opts} = event_handler()
+    size = Keyword.get(opts, :size, default_pool_size())
+    max_overflow = Keyword.get(opts, :max_overflow, default_pool_max_overflow())
+    [poolboy_spec(pool_name(), EventManagerWatcher, size, max_overflow)]
+  end
+
+  defp poolboy_spec(name, handler, size, max_overflow) do
+    poolboy_config = [
+      {:name, {:local, name}},
+      {:worker_module, handler},
+      {:size, size},
+      {:max_overflow, max_overflow}
+    ]
+
+    :poolboy.child_spec(name, poolboy_config, [])
+  end
+
+  def event_handler_mod do
+    {mod, _opts} = event_handler
+    mod
+  end
+
+  def pool_name do
+    Application.get_env(:tg_client, :pool_name)
+  end
+
+  defp event_handler do
+    Application.get_env(:tg_client, :event_handler)
+  end
+
+  defp default_pool_size do
+    Application.get_env(:tg_client, :default_pool_size)
+  end
+
+  defp default_pool_max_overflow do
+    Application.get_env(:tg_client, :default_pool_max_overflow)
+  end
+
+  defp session_env_path(phone) do
+    "#{session_env_path}/#{phone_hash(phone)}"
+  end
+  defp session_env_path do
+    Application.get_env(:tg_client, :session_env_path)
+  end
+
+  defp phone_hash(phone) do
+    :crypto.hash(:md5, Integer.to_string(phone)) |> Base.encode16
+  end
+
+  defp daemon do
+    Application.get_env(:tg_client, :daemon)
+  end
+
+  defp server_key do
+    Application.get_env(:tg_client, :key)
+  end
+
 end
