@@ -32,8 +32,11 @@ defmodule TgClient.Utils do
   Creates unique name for session process based on user phone
   """
   @spec session_name(non_neg_integer) :: gproc_name
-  def session_name(phone) do
-     phone |> Integer.to_string |> via_tuple(:session)
+  def session_name(phone) when is_integer(phone) do
+     phone |> Integer.to_string |> session_name
+  end
+  def session_name(phone) when is_binary(phone) do
+     via_tuple(phone, :session)
   end
 
   @doc """
