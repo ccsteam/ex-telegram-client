@@ -130,8 +130,11 @@ defmodule TgClient.Utils do
     Application.get_env(:tg_client, :session_env_path)
   end
 
-  defp phone_hash(phone) do
+  defp phone_hash(phone) when is_integer(phone) do
     :crypto.hash(:md5, Integer.to_string(phone)) |> Base.encode16
+  end
+  defp phone_hash(phone) when is_binary(phone) do
+    :crypto.hash(:md5, phone) |> Base.encode16
   end
 
   defp daemon do
