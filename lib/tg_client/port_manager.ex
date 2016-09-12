@@ -95,9 +95,9 @@ defmodule TgClient.PortManager do
   end
 
   defp system_port_bound?(port) do
-    !check_system_port(port) == []
+    !(check_system_port(port) == [])
   end
-  defp check_system_port(port) do
+  def check_system_port(port) do
     "lsof -i:#{port}" |> String.to_charlist |> :os.cmd
   end
   defp kill_system_port(port) do
