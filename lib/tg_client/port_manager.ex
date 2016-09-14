@@ -58,7 +58,7 @@ defmodule TgClient.PortManager do
   ### GenServer Callbacks
 
   def init(ports) do
-    Task.async(&release_all_system_ports/0)
+    #Task.async(&release_all_system_ports/0)
     {:ok, ports}
   end
 
