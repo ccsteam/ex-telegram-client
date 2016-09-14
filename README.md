@@ -60,6 +60,12 @@ config :tg_client,
 {:ok, _pid} = TgClient.Session.start_link(79251008050)
 ```
 
+* Start session under Supervisor
+
+```elixir
+{:ok, _pid} = TgClient.start_session(79251008050)
+```
+
 * Check session status
 
 ```elixir
