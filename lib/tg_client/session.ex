@@ -19,7 +19,7 @@ defmodule TgClient.Session do
   @type state :: %State{
     proc: %Proc{} | nil,
     status: :init | :waiting_for_confirmation | :waiting_for_password | :connected,
-    phone: non_neg_integer | nil,
+    phone: non_neg_integer | String.t | nil,
     port: non_neg_integer | nil,
     socket: port | nil
   }
@@ -29,7 +29,7 @@ defmodule TgClient.Session do
   @doc """
   Starts a session with phone
   """
-  @spec start_link(non_neg_integer) :: GenServer.on_start
+  @spec start_link(non_neg_integer | String.t) :: GenServer.on_start
   def start_link(phone) do
     GenServer.start_link(__MODULE__, phone, name: Utils.session_name(phone))
   end
@@ -37,7 +37,7 @@ defmodule TgClient.Session do
   @doc """
   Return current session status
   """
-  @spec current_status(non_neg_integer) :: {:ok, atom}
+  @spec current_status(non_neg_integer | String.t) :: {:ok, atom}
   def current_status(phone) do
     GenServer.call(Utils.session_name(phone), :current_status)
   end
@@ -45,7 +45,7 @@ defmodule TgClient.Session do
   @doc """
   Send request to TCP connection
   """
-  @spec send_command(non_neg_integer, String.t, List.t) :: {:ok, String.t} | {:error, atom}
+  @spec send_command(non_neg_integer | String.t, String.t, List.t) :: {:ok, String.t} | {:error, atom}
   def send_command(phone, command, params) do
     GenServer.call(Utils.session_name(phone), {:send_command, command, params})
   end
@@ -53,7 +53,7 @@ defmodule TgClient.Session do
   @doc """
   Put confirmation code to stdio
   """
-  @spec confirm(non_neg_integer, non_neg_integer) :: atom
+  @spec confirm(non_neg_integer | String.t, non_neg_integer) :: atom
   def confirm(phone, code) do
     GenServer.cast(Utils.session_name(phone), {:confirm, code})
   end
@@ -61,7 +61,7 @@ defmodule TgClient.Session do
   @doc """
   Put password to stdio
   """
-  @spec put_password(non_neg_integer, non_neg_integer) :: atom
+  @spec put_password(non_neg_integer | String.t, non_neg_integer) :: atom
   def put_password(phone, password) do
     GenServer.cast(Utils.session_name(phone), {:put_password, password})
   end
