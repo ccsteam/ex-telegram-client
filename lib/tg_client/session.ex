@@ -126,7 +126,7 @@ defmodule TgClient.Session do
     case rest do
       'phone number: ' ->
         Proc.send_input(state.proc, "#{state.phone} \n")
-        {:noreply, state}
+        {:noreply, %{state | status: :waiting_for_confirmation}}
       'code (\'CALL\' for phone code): ' ->
         {:noreply, %{state | status: :waiting_for_confirmation}}
       'password: ' ->
