@@ -91,18 +91,24 @@ defmodule TgClient.PortManager do
 
   defp release_all_system_ports do
     Utils.port_range
-    |> Stream.filter(&system_port_bound?/1)
+    # |> Stream.filter(&system_port_bound?/1)
     |> Enum.each(&kill_system_port/1)
   end
 
-  defp system_port_bound?(port) do
-    !(check_system_port(port) == [])
-  end
-  def check_system_port(port) do
-    "lsof -i:#{port}" |> String.to_charlist |> :os.cmd
-  end
+  # TODO Сделать под разные платформы
+  # defp system_port_bound?(port) do
+  #   !(check_system_port(port) == [])
+  # end
+  # def check_system_port(port) do
+  #   "lsof -i:#{port}" |> String.to_charlist |> :os.cmd
+  # end
+  # defp kill_system_port(port) do
+  #   "kill $(lsof -t -i:#{port})"
+  #   |> String.to_charlist
+  #   |> :os.cmd
+  # end
   defp kill_system_port(port) do
-    "kill $(lsof -t -i:#{port})"
+    "fuser -k #{port}/tcp"
     |> String.to_charlist
     |> :os.cmd
   end
