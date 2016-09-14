@@ -1,7 +1,8 @@
 defmodule TgClient do
   use Application
-  
-  alias TgClient.Utils
+
+  alias TgClient.{Utils, Session}
+  import Supervisor.Spec, only: [worker: 3]
 
   ### Application callbacks
 
@@ -10,6 +11,10 @@ defmodule TgClient do
 
     opts = [strategy: :one_for_one, name: TgClient.Supervisor]
     {:ok, _pid} = Supervisor.start_link(children, opts)
+  end
+
+  def start_session(phone) do
+    Supervisor.start_child(TgClient.Supervisor, worker(Session, [phone], []))
   end
 
 end
