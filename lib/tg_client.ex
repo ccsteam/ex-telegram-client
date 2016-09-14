@@ -13,6 +13,10 @@ defmodule TgClient do
     {:ok, _pid} = Supervisor.start_link(children, opts)
   end
 
+  @doc """
+  Start session under Supervisor
+  """
+  @spec start_session(non_neg_integer) :: on_start_child
   def start_session(phone) do
     Supervisor.start_child(TgClient.Supervisor, worker(Session, [phone], []))
   end
