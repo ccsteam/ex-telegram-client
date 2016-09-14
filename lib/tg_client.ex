@@ -18,7 +18,8 @@ defmodule TgClient do
   """
   @spec start_session(non_neg_integer | String.t) :: Supervisor.on_start_child
   def start_session(phone) do
-    Supervisor.start_child(TgClient.Supervisor, worker(Session, [phone], []))
+    Supervisor.start_child(TgClient.Supervisor,
+                           worker(Session, [phone], [id: Utils.session_name(phone)]))
   end
 
 end
