@@ -18,7 +18,7 @@ defmodule TgClient.Session do
   end
   @type state :: %State{
     proc: %Proc{} | nil,
-    status: :init | :waiting_for_confirmation | :waiting_for_password | :connected,
+    status: :init | :connecting | :waiting_for_confirmation | :waiting_for_password | :connected,
     phone: non_neg_integer | String.t | nil,
     port: non_neg_integer | nil,
     socket: port | nil
@@ -111,7 +111,7 @@ defmodule TgClient.Session do
     {:ok, _pid} = Connection.start_link(port)
     {:ok, {:bound, _port}} = PortManager.bind_port(port)
 
-    {:noreply, %{state | status: :connected}}
+    {:noreply, %{state | status: :connecting}}
   end
 
   def handle_info({_pid, :data, :out, data}, state) do
@@ -120,19 +120,20 @@ defmodule TgClient.Session do
 
     try do
       send_event(Poison.Parser.parse!(data))
+      {:noreply, %{state | status: :connected}}
     rescue
-      Poison.SyntaxError -> :skip
-    end
-    case rest do
-      'phone number: ' ->
-        Proc.send_input(state.proc, "#{state.phone} \n")
-        {:noreply, %{state | status: :waiting_for_confirmation}}
-      'code (\'CALL\' for phone code): ' ->
-        {:noreply, %{state | status: :waiting_for_confirmation}}
-      'password: ' ->
-        {:noreply, %{state | status: :waiting_for_password}}
-      _ ->
-        {:noreply, state}
+      Poison.SyntaxError ->
+        case rest do
+          'phone number: ' ->
+            Proc.send_input(state.proc, "#{state.phone} \n")
+            {:noreply, %{state | status: :waiting_for_confirmation}}
+          'code (\'CALL\' for phone code): ' ->
+            {:noreply, %{state | status: :waiting_for_confirmation}}
+          'password: ' ->
+            {:noreply, %{state | status: :waiting_for_password}}
+          _ ->
+            {:noreply, state}
+        end
     end
   end
   def handle_info(_msg, state) do
