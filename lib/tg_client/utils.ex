@@ -15,7 +15,7 @@ defmodule TgClient.Utils do
   @spec command(non_neg_integer, non_neg_integer) :: String.t
   def command(phone, port) do
     init_session_env(phone)
-    "export TELEGRAM_HOME=#{session_env_path(phone)} && #{daemon} #{cli_arguments} -P #{port}"
+    "export TELEGRAM_HOME=#{session_env_path(phone)} && #{daemon} #{cli_arguments} -P #{port} -U root"
   end
 
   defp cli_arguments do
