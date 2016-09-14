@@ -4,7 +4,7 @@ defmodule TgClient.Connection do
   """
   use GenServer
 
-  alias TgClient.Utils
+  alias TgClient.{Utils, PortManager}
   alias TgClient.Api.CommandHandler
 
   @doc false
@@ -64,6 +64,11 @@ defmodule TgClient.Connection do
     else
       {:stop, :max_retry_exceeded, state}
     end
+  end
+
+  def terminate(_reason, %{port: port} = state) do
+    PortManager.release_port(port)
+    :ok
   end
 
 end

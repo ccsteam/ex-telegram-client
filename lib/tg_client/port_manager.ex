@@ -52,7 +52,7 @@ defmodule TgClient.PortManager do
   """
   @spec release_port(non_neg_integer) :: atom
   def release_port(port) do
-    GenServer.cast(__MODULE__, {:release, port})
+    GenServer.cast(__MODULE__, {:release_port, port})
   end
 
   ### GenServer Callbacks
@@ -79,6 +79,7 @@ defmodule TgClient.PortManager do
   end
 
   def handle_cast({:release_port, port}, busy_ports) do
+    kill_system_port(port)
     {:noreply, MapSet.delete(busy_ports, port)}
   end
 
