@@ -139,6 +139,11 @@ defmodule TgClient.Session do
     {:noreply, state}
   end
 
+  def terminate(_reason, %{port: port} = state) do
+    PortManager.release_port(port)
+    :ok
+  end
+
   defp handle_data(data) do
     handle_data(data, [], [])
   end
