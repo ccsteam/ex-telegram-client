@@ -11,14 +11,14 @@ defmodule TgClient.Session do
   @doc false
   defmodule State do
     defstruct proc: nil,
-              status: :init,
+              status: :connecting,
               phone: nil,
               port: nil,
               socket: nil
   end
   @type state :: %State{
     proc: %Proc{} | nil,
-    status: :init | :connecting | :waiting_for_confirmation | :waiting_for_password | :connected,
+    status: :connecting | :waiting_for_confirmation | :waiting_for_password | :connected,
     phone: non_neg_integer | String.t | nil,
     port: non_neg_integer | nil,
     socket: port | nil
@@ -75,6 +75,7 @@ defmodule TgClient.Session do
                                     in: :receive, out: {:send, self()})
         state = %State{port: port, phone: phone, proc: proc}
         send self(), {:connect, port}
+        :erlang.send_after(1000, self(), {:check_connect, port})
         {:ok, state}
       {:error, error} ->
         {:stop, error}
@@ -96,12 +97,16 @@ defmodule TgClient.Session do
   def handle_cast({:confirm, code}, %{status: status} = state)
       when status in [:waiting_for_confirmation] do
     Proc.send_input(state.proc, "#{code}\n")
-    {:noreply, %{state | status: :connected}}
+    :erlang.send_after(500, self(), {:check_connect, state.port})
+
+    {:noreply, state}
   end
   def handle_cast({:put_password, password}, %{status: status} = state)
       when status in [:waiting_for_password] do
     Proc.send_input(state.proc, "#{password}\n")
-    {:noreply, %{state | status: :connected}}
+    :erlang.send_after(500, self(), {:check_connect, state.port})
+
+    {:noreply, state}
   end
   def handle_cast(_, state) do
     {:noreply, state}
@@ -111,7 +116,17 @@ defmodule TgClient.Session do
     {:ok, _pid} = Connection.start_link(port)
     {:ok, {:bound, _port}} = PortManager.bind_port(port)
 
-    {:noreply, %{state | status: :connecting}}
+    {:noreply, state}
+  end
+  def handle_info({:check_connect, port}, state) do
+    with {:ok, response} <- GenServer.call(Utils.connection_name(port),
+                                          {:send_command, "status_online", []}),
+         %{"result" => "SUCCESS"} <- Poison.decode!(response)
+    do
+      {:noreply, %{state | status: :connected}}
+    else
+      _ -> {:noreply, state}
+    end
   end
 
   def handle_info({_pid, :data, :out, data}, state) do
@@ -120,7 +135,7 @@ defmodule TgClient.Session do
 
     try do
       send_event(Poison.Parser.parse!(data))
-      {:noreply, %{state | status: :connected}}
+      {:noreply, state}
     rescue
       Poison.SyntaxError ->
         case rest do
@@ -140,7 +155,7 @@ defmodule TgClient.Session do
     {:noreply, state}
   end
 
-  def terminate(_reason, %{port: port} = state) do
+  def terminate(_reason, %{port: _port} = _state) do
     #PortManager.release_port(port)
     :ok
   end
