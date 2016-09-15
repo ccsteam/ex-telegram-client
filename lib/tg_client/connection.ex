@@ -66,7 +66,7 @@ defmodule TgClient.Connection do
     end
   end
 
-  def terminate(_reason, %{port: port} = state) do
+  def terminate(_reason, %{port: port} = _state) do
     PortManager.release_port(port)
     :ok
   end
