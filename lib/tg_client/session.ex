@@ -74,7 +74,7 @@ defmodule TgClient.Session do
         proc = Porcelain.spawn_shell(Utils.command(phone, port),
                                     in: :receive, out: {:send, self()})
         state = %State{port: port, phone: phone, proc: proc}
-        send self(), {:connect, port}
+        connect(port)
         :erlang.send_after(1000, self(), {:check_connect, port})
         {:ok, state}
       {:error, error} ->
@@ -158,6 +158,11 @@ defmodule TgClient.Session do
   def terminate(_reason, %{port: _port} = _state) do
     #PortManager.release_port(port)
     :ok
+  end
+
+  defp connect(port) do
+    {:ok, _pid} = Connection.start_link(port)
+    {:ok, {:bound, _port}} = PortManager.bind_port(port)
   end
 
   defp handle_data(data) do
