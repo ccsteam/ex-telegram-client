@@ -25,6 +25,7 @@ defmodule TgClient.Mixfile do
      {:porcelain, "~> 2.0"},
      {:gproc, "~> 0.5.0"},
      {:poison, "~> 2.0"},
+     {:afunix,  github: "tonyrog/afunix"},
      {:poolboy, "~> 1.5"},]
   end
 
