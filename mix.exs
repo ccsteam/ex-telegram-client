@@ -16,7 +16,7 @@ defmodule TgClient.Mixfile do
   def application do
     [
       mod: {TgClient, []},
-      applications: [:porcelain, :poolboy, :gproc]
+      applications: [:porcelain, :poolboy, :gproc, :afunix]
     ]
   end
 
