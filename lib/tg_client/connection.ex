@@ -27,7 +27,7 @@ defmodule TgClient.Connection do
   ### API
 
   @doc """
-  Starts connection with port
+  Starts connection with socket_path
   """
   @spec start_link(non_neg_integer) :: GenServer.on_start
   def start_link(socket_path) do

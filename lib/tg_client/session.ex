@@ -104,7 +104,7 @@ defmodule TgClient.Session do
   end
   def handle_call({:send_command, command, params}, _from, %{status: status} = state)
   when status in [:connected] do
-    result = GenServer.call(Utils.connection_name(state.port), {:send_command, command, params})
+    result = GenServer.call(Utils.connection_name(state.socket_path), {:send_command, command, params})
     {:reply, result, state}
   end
   def handle_call(_, _from, state) do
@@ -114,14 +114,14 @@ defmodule TgClient.Session do
   def handle_cast({:confirm, code}, %{status: status} = state)
   when status in [:waiting_for_confirmation] do
     Proc.send_input(state.proc, "#{code}\n")
-    :erlang.send_after(500, self(), {:check_connect, state.port})
+    :erlang.send_after(500, self(), {:check_connect, state.socket_path})
 
     {:noreply, state}
   end
   def handle_cast({:put_password, password}, %{status: status} = state)
   when status in [:waiting_for_password] do
     Proc.send_input(state.proc, "#{password}\n")
-    :erlang.send_after(500, self(), {:check_connect, state.port})
+    :erlang.send_after(500, self(), {:check_connect, state.socket_path})
 
     {:noreply, state}
   end
