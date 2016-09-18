@@ -98,14 +98,6 @@ defmodule TgClient.Utils do
     Application.get_env(:tg_client, :pool_name)
   end
 
-  @doc """
-  Return ports range
-  """
-  @spec port_range :: Range.t
-  def port_range do
-    Application.get_env(:tg_client, :port_range)
-  end
-
   defp event_handler do
     Application.get_env(:tg_client, :event_handler)
   end
