@@ -5,22 +5,24 @@ defmodule TgClient.Session do
   use GenServer
 
   alias Porcelain.Process, as: Proc
-  alias TgClient.{Utils, Connection, PortManager}
+  alias TgClient.{Utils, Connection}
   alias TgClient.Event.ManagerWatcher
+
+  require Logger
 
   @doc false
   defmodule State do
     defstruct proc: nil,
-              status: :offline,
-              phone: nil,
-              port: nil,
-              socket: nil
+    status: :offline,
+    phone: nil,
+    socket: nil,
+    socket_path: nil
   end
   @type state :: %State{
     proc: %Proc{} | nil,
     status: :offline | :waiting_for_confirmation | :waiting_for_password | :connected,
     phone: non_neg_integer | String.t | nil,
-    port: non_neg_integer | nil,
+    socket_path: String.t | nil,
     socket: port | nil
   }
 
@@ -32,6 +34,14 @@ defmodule TgClient.Session do
   @spec start_link(non_neg_integer | String.t) :: GenServer.on_start
   def start_link(phone) do
     GenServer.start_link(__MODULE__, phone, name: Utils.session_name(phone))
+  end
+
+  @doc """
+  Connects a session with phone
+  """
+  @spec connect(non_neg_integer | String.t) :: {:ok, atom}
+  def connect(phone) do
+    GenServer.call(Utils.session_name(phone), :connect)
   end
 
   @doc """
@@ -69,17 +79,24 @@ defmodule TgClient.Session do
   ### GenServer Callbacks
 
   def init(phone) do
-    case PortManager.get_free_port do
-      {:ok, port} ->
-        proc = Porcelain.spawn_shell(Utils.command(phone, port),
-                                    in: :receive, out: {:send, self()})
-        state = %State{port: port, phone: phone, proc: proc}
-        connect(port)
-        :erlang.send_after(1000, self(), {:check_connect, port})
-        {:ok, state}
-      {:error, error} ->
-        {:stop, error}
-    end
+    {:ok, %State{socket_path: nil, phone: phone, proc: nil}}
+  end
+
+  def handle_call(:connect, _from, %{phone: phone} = state) do
+    socket_path = Utils.connection_socket_path(phone)
+
+    Logger.debug("Starting telegram-cli: #{Utils.command(phone, socket_path)}")
+    proc = Porcelain.spawn_shell(Utils.command(phone, socket_path),
+       in: :receive, out: {:send, self()})
+
+    Logger.debug("Started telegram-cli proccess: #{inspect proc}")
+
+    state = %State{socket_path: socket_path, phone: phone, proc: proc}
+
+    start_connection(socket_path)
+    :erlang.send_after(1000, self(), {:check_connect, socket_path})
+
+    {:reply, {:ok, :connected}, state}
   end
 
   def handle_call(:current_status, _from, state) do
@@ -112,16 +129,15 @@ defmodule TgClient.Session do
     {:noreply, state}
   end
 
-  def handle_info({:connect, port}, state) do
-    {:ok, _pid} = Connection.start_link(port)
-    {:ok, {:bound, _port}} = PortManager.bind_port(port)
+  def handle_info({:connect, socket_path}, state) do
+    {:ok, _pid} = Connection.start_link(socket_path)
 
     {:noreply, state}
   end
-  def handle_info({:check_connect, port}, state) do
-    with {:ok, response} <- GenServer.call(Utils.connection_name(port),
-                                          {:send_command, "status_online", []}),
-         %{"result" => "SUCCESS"} <- Poison.decode!(response)
+  def handle_info({:check_connect, socket_path}, state) do
+    with {:ok, response} <- GenServer.call(Utils.connection_name(socket_path),
+     {:send_command, "status_online", []}),
+    %{"result" => "SUCCESS"} <- Poison.decode!(response)
     do
       {:noreply, %{state | status: :connected}}
     else
@@ -165,13 +181,12 @@ defmodule TgClient.Session do
     {:noreply, state}
   end
 
-  def terminate(_reason, %{port: port} = state) do
+  def terminate(_reason, %{socket_path: _socket_path} = _state) do
     :ok
   end
 
-  defp connect(port) do
-    {:ok, _pid} = Connection.start_link(port)
-    {:ok, {:bound, _port}} = PortManager.bind_port(port)
+  defp start_connection(socket_path) do
+    {:ok, _pid} = Connection.start_link(socket_path)
   end
 
   defp handle_data(data) do
@@ -179,7 +194,7 @@ defmodule TgClient.Session do
   end
 
   defp handle_data("\r\e[K" <> rest, line, acc) do
-    handle_data(rest, line, acc)
+     handle_data(rest, line, acc)
   end
   defp handle_data("\n" <> rest, line, acc) do
     handle_data(rest, [], [Enum.reverse(line)|acc])
