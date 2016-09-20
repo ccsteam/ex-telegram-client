@@ -45,7 +45,6 @@ config :tg_client,
   daemon: "/usr/local/telegram-cli",
   key: "/usr/local/share/telegram-cli/tg-server.pub",
   session_env_path: "/tmp/telegram-cli/sessions",
-  port_range: 2000..2010,
   default_pool_size: 5,
   default_pool_max_overflow: 10,
   pool_name: :event_handler,
@@ -66,13 +65,19 @@ config :tg_client,
 {:ok, _pid} = TgClient.start_session(79251008050)
 ```
 
+* Connect to CLI
+
+```elixir
+{:ok, :connected} = TgClient.Session.connect(79251008050)
+```
+
 * Check session status
 
 ```elixir
 {:ok, status} = TgClient.Session.current_status(79251008050)
 ```
 
-when status in [:init, :waiting_for_confirmation, :waiting_for_password, :connected]
+when status in [:offline, :waiting_for_confirmation, :waiting_for_password, :connected]
 
 * Confirm
 
@@ -166,7 +171,7 @@ when response is:
 when response is:
 
 ```json
-{  
+{
    \"result\":\"SUCCESS\"
 }
 ```
@@ -256,7 +261,6 @@ config :tg_client,
   daemon: "/usr/local/telegram-cli",
   key: "/usr/local/share/telegram-cli/tg-server.pub",
   session_env_path: "/tmp/telegram-cli/sessions",
-  port_range: 2000..2010,
   default_pool_size: 5,
   default_pool_max_overflow: 10,
   pool_name: :event_handler,

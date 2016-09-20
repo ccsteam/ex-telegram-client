@@ -2,7 +2,6 @@ defmodule TgClient.Utils do
   @moduledoc """
   Module with usefull functions.
   """
-  alias TgClient.PortManager
   alias TgClient.Event.ManagerWatcher
 
   import Supervisor.Spec, only: [worker: 3]
@@ -12,10 +11,10 @@ defmodule TgClient.Utils do
   @doc """
   Return command for start telegram-cli
   """
-  @spec command(non_neg_integer, non_neg_integer) :: String.t
-  def command(phone, port) do
+  @spec command(non_neg_integer, String.t) :: String.t
+  def command(phone, socket_path) do
     init_session_env(phone)
-    "export TELEGRAM_HOME=#{session_env_path(phone)} && #{daemon} #{cli_arguments} -P #{port}"
+    "export TELEGRAM_HOME=#{session_env_path(phone)} && #{daemon} #{cli_arguments} -S #{socket_path} -U root"
   end
 
   defp cli_arguments do
@@ -31,7 +30,7 @@ defmodule TgClient.Utils do
   @doc """
   Creates unique name for session process based on user phone
   """
-  @spec session_name(non_neg_integer) :: gproc_name
+  @spec session_name(non_neg_integer | String.t) :: gproc_name
   def session_name(phone) when is_integer(phone) do
      phone |> Integer.to_string |> session_name
   end
@@ -40,28 +39,25 @@ defmodule TgClient.Utils do
   end
 
   @doc """
-  Creates unique name for connection process based on port number
+  Creates unique name for connection process based on socket path
   """
-  @spec connection_name(non_neg_integer) :: gproc_name
-  def connection_name(port) do
-     port |> Integer.to_string |> via_tuple(:connection)
+  @spec connection_name(String.t) :: gproc_name
+  def connection_name(socket_path) do
+     socket_path |> via_tuple(:connection)
   end
 
+  @doc """
+  Creates unique path for connection socket based on session path
+  """
+  @spec connection_socket_path(non_neg_integer | String.t) :: String.t
+  def connection_socket_path(phone) do
+    "#{session_env_path(phone)}/tg_client.#{:rand.uniform(7)}.sock"
+  end
   ### Internal functions
 
   @spec via_tuple(String.t, atom) :: gproc_name
   defp via_tuple(worker_name, worker_type) do
     {:via, :gproc, {:n, :l, {worker_type, worker_name}}}
-  end
-
-  @doc """
-  Return Supervisor.Spec for general workers
-  """
-  @spec supervisor_spec :: [Supervisor.spec]
-  def supervisor_spec do
-    [
-      worker(PortManager, [], [])
-    ]
   end
 
   @doc """
@@ -103,14 +99,6 @@ defmodule TgClient.Utils do
     Application.get_env(:tg_client, :pool_name)
   end
 
-  @doc """
-  Return ports range
-  """
-  @spec port_range :: Range.t
-  def port_range do
-    Application.get_env(:tg_client, :port_range)
-  end
-
   defp event_handler do
     Application.get_env(:tg_client, :event_handler)
   end
@@ -129,6 +117,7 @@ defmodule TgClient.Utils do
   defp session_env_path do
     Application.get_env(:tg_client, :session_env_path)
   end
+
 
   defp phone_hash(phone) when is_integer(phone) do
     :crypto.hash(:md5, Integer.to_string(phone)) |> Base.encode16

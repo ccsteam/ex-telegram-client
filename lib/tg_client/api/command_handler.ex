@@ -3,7 +3,7 @@ defmodule TgClient.Api.CommandHandler do
   Module for command accept, execute and handle its result.
   """
   @available_commands ["dialog_list", "contact_list", "msg", "history",
-                       "create_secret_chat", "status_online"]
+                       "create_secret_chat", "status_online", "get_self"]
 
   @doc """
   Extract command, params and socket from options and execute command

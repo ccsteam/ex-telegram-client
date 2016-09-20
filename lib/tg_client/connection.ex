@@ -4,19 +4,19 @@ defmodule TgClient.Connection do
   """
   use GenServer
 
-  alias TgClient.{Utils, PortManager}
+  alias TgClient.Utils
   alias TgClient.Api.CommandHandler
+
+  require Logger
 
   @doc false
   defmodule State do
-    defstruct host: 'localhost',
-              port: 1234,
+    defstruct socket_path: "1234",
               failure_count: 0,
               socket: nil
   end
   @type state :: %State{
-    host: charlist,
-    port: non_neg_integer,
+    socket_path: String.t,
     failure_count: non_neg_integer,
     socket: port | nil
   }
@@ -27,18 +27,18 @@ defmodule TgClient.Connection do
   ### API
 
   @doc """
-  Starts connection with port
+  Starts connection with socket_path
   """
   @spec start_link(non_neg_integer) :: GenServer.on_start
-  def start_link(port) do
-    GenServer.start_link(__MODULE__, port, name: Utils.connection_name(port))
+  def start_link(socket_path) do
+    GenServer.start_link(__MODULE__, socket_path, name: Utils.connection_name(socket_path))
   end
 
   ### GenServer Callbacks
 
-  def init(port) do
-    state = %State{port: port}
-    case :gen_tcp.connect(state.host, state.port, [:binary, active: :false]) do
+  def init(socket_path) do
+    state = %State{socket_path: socket_path}
+    case :afunix.connect(to_char_list(socket_path), [:binary, active: :false]) do
       {:ok, socket} ->
         {:ok, %{state | socket: socket}}
       {:error, _reason} ->
@@ -55,7 +55,7 @@ defmodule TgClient.Connection do
 
   def handle_info(:timeout, state = %State{failure_count: failure_count}) do
     if failure_count <= @max_retries do
-      case :gen_tcp.connect(state.host, state.port, [:binary, active: :false]) do
+      case :afunix.connect(to_char_list(state.socket_path), [:binary, active: :false]) do
         {:ok, socket} ->
           {:noreply, %{state | failure_count: 0, socket: socket}}
         {:error, _reason} ->
@@ -66,8 +66,8 @@ defmodule TgClient.Connection do
     end
   end
 
-  def terminate(_reason, %{port: port} = _state) do
-    PortManager.release_port(port)
+  def terminate(reason, %{socket_path: socket_path} = state) do
+    Logger.debug("Connection with socket_path: #{socket_path} terminated with reason: #{inspect reason}")
     :ok
   end
 
