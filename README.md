@@ -65,13 +65,19 @@ config :tg_client,
 {:ok, _pid} = TgClient.start_session(79251008050)
 ```
 
+* Connect to CLI
+
+```elixir
+{:ok, :connected} = TgClient.Session.connect(79251008050)
+```
+
 * Check session status
 
 ```elixir
 {:ok, status} = TgClient.Session.current_status(79251008050)
 ```
 
-when status in [:init, :waiting_for_confirmation, :waiting_for_password, :connected]
+when status in [:offline, :waiting_for_confirmation, :waiting_for_password, :connected]
 
 * Confirm
 

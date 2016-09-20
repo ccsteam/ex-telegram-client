@@ -30,7 +30,7 @@ defmodule TgClient.Utils do
   @doc """
   Creates unique name for session process based on user phone
   """
-  @spec session_name(non_neg_integer) :: gproc_name
+  @spec session_name(non_neg_integer | String.t) :: gproc_name
   def session_name(phone) when is_integer(phone) do
      phone |> Integer.to_string |> session_name
   end
@@ -49,6 +49,7 @@ defmodule TgClient.Utils do
   @doc """
   Creates unique path for connection socket based on session path
   """
+  @spec connection_socket_path(non_neg_integer | String.t) :: String.t
   def connection_socket_path(phone) do
     "#{session_env_path(phone)}/tg_client.#{:rand.uniform(7)}.sock"
   end
