@@ -6,17 +6,20 @@ defmodule TgClient.Connection do
 
   alias TgClient.Utils
   alias TgClient.Api.CommandHandler
+  alias TgClient.Event.Listener
 
   require Logger
 
   @doc false
   defmodule State do
     defstruct socket_path: "1234",
+              listener_enabled: false,
               failure_count: 0,
               socket: nil
   end
   @type state :: %State{
     socket_path: String.t,
+    listener_enabled: boolean,
     failure_count: non_neg_integer,
     socket: port | nil
   }
@@ -34,6 +37,10 @@ defmodule TgClient.Connection do
     GenServer.start_link(__MODULE__, socket_path, name: Utils.connection_name(socket_path))
   end
 
+  def start_listener(socket_path) do
+    GenServer.cast(Utils.connection_name(socket_path), :start_listener)
+  end
+
   ### GenServer Callbacks
 
   def init(socket_path) do
@@ -49,8 +56,14 @@ defmodule TgClient.Connection do
   def handle_call({:send_command, command, params}, _from, state) do
     result = CommandHandler.handle_command(command: command,
                                            params: params,
-                                           socket: state.socket)
+                                           socket: state.socket,
+                                           return_response: !state.listener_enabled)
     {:reply, result, state}
+  end
+
+  def handle_cast(:start_listener, %{socket: socket, socket_path: socket_path} = state) do
+    Listener.start_link(socket, socket_path)
+    {:noreply, %{state | listener_enabled: true}}
   end
 
   def handle_info(:timeout, state = %State{failure_count: failure_count}) do

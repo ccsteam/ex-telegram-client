@@ -47,6 +47,14 @@ defmodule TgClient.Utils do
   end
 
   @doc """
+  Creates unique name for events listener process based on socket path
+  """
+  @spec listener_name(String.t) :: gproc_name
+  def listener_name(socket_path) do
+     socket_path |> via_tuple(:listener)
+  end
+
+  @doc """
   Creates unique path for connection socket based on session path
   """
   @spec connection_socket_path(non_neg_integer | String.t) :: String.t

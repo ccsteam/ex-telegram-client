@@ -45,6 +45,14 @@ defmodule TgClient.Session do
   end
 
   @doc """
+  Starts events listener
+  """
+  @spec listen_events(non_neg_integer | String.t) :: :ok
+  def listen_events(phone) do
+    GenServer.cast(Utils.session_name(phone), :listen_events)
+  end
+
+  @doc """
   Return current session status
   """
   @spec current_status(non_neg_integer | String.t) :: {:ok, atom}
@@ -125,6 +133,11 @@ defmodule TgClient.Session do
 
     {:noreply, state}
   end
+  def handle_cast(:listen_events, %{status: status, socket_path: socket_path} = state)
+      when status in [:connected] do
+    Connection.start_listener(socket_path)
+    {:noreply, state}
+  end
   def handle_cast(_, state) do
     {:noreply, state}
   end
@@ -138,16 +151,6 @@ defmodule TgClient.Session do
     with {:ok, response} <- GenServer.call(Utils.connection_name(socket_path),
                                            {:send_command, "status_online", []}),
     %{"result" => "SUCCESS"} <- Poison.decode!(response)
-    do
-      {:noreply, %{state | status: :connected}}
-    else
-      _ -> {:noreply, state}
-    end
-  end
-  def handle_info({:check_connect, port}, state) do
-    with {:ok, response} <- GenServer.call(Utils.connection_name(port),
-                                          {:send_command, "status_online", []}),
-         %{"result" => "SUCCESS"} <- Poison.decode!(response)
     do
       {:noreply, %{state | status: :connected}}
     else

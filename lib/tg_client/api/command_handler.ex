@@ -3,7 +3,8 @@ defmodule TgClient.Api.CommandHandler do
   Module for command accept, execute and handle its result.
   """
   @available_commands ["dialog_list", "contact_list", "msg", "history",
-                       "create_secret_chat", "status_online", "get_self"]
+                       "create_secret_chat", "status_online", "get_self",
+                       "main_session"]
 
   @doc """
   Extract command, params and socket from options and execute command
@@ -13,7 +14,9 @@ defmodule TgClient.Api.CommandHandler do
     command = Keyword.get(opts, :command)
     params = Keyword.get(opts, :params, [])
     socket = Keyword.get(opts, :socket)
+    return_response = Keyword.get(opts, :return_response)
     execute_command(command, params, socket)
+    if return_response, do: handle_response(socket, [])
   end
 
   defp execute_command(command, params, socket)
@@ -27,11 +30,10 @@ defmodule TgClient.Api.CommandHandler do
 
   defp send_request(request, socket) do
     :gen_tcp.send(socket, "#{request} \n")
-    handle_response(socket, [])
   end
 
   defp handle_response(socket, []) do
-    case :gen_tcp.recv(socket, 0, 1000) do
+    case :gen_tcp.recv(socket, 0, 2000) do
       {:ok, packet} ->
         [_ | response] = String.split(packet, "\n")
         response = Enum.join(response, "\n")
@@ -41,7 +43,7 @@ defmodule TgClient.Api.CommandHandler do
     end
   end
   defp handle_response(socket, acc) do
-    case :gen_tcp.recv(socket, 0, 1000) do
+    case :gen_tcp.recv(socket, 0, 2000) do
       {:ok, response} ->
         handle_response(socket, acc ++ [response])
       {:error, :timeout} ->
